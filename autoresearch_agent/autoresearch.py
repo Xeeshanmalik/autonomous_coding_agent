@@ -44,7 +44,7 @@ def main():
         payload = {
             "model": MODEL,
             "messages": [
-                {"role": "system", "content": "You are an elite, autonomous quantitative researcher. Output ONLY the raw Python code inside ```python blocks. Do not explain your code."},
+                {"role": "system", "content": "You are an elite, autonomous quantitative researcher. Output ONLY the raw Python code inside ```python blocks. Do not explain your code. Ensure your code prints the final validation loss as `val_loss <score>` at the very end."},
                 {"role": "user", "content": f"{program_instructions}\n\nCurrent train.py:\n```python\n{current_code}\n```"}
             ],
             "temperature": 0.2,
@@ -79,7 +79,7 @@ def main():
                             
             print("\033[0m\n") # Reset color
             
-            match = re.search(r'```python\n(.*?)```', full_response, re.DOTALL)
+            match = re.search(r'```(?:python)?\s*\n(.*?)```', full_response, re.DOTALL | re.IGNORECASE)
             if not match:
                 print("[-] Agent failed to format code properly. Skipping cycle.")
                 iteration += 1
