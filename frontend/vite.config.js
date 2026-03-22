@@ -14,7 +14,7 @@ export default defineConfig({
       },
       // Route evolution core requests to the AutoResearcher on port 8081
       '/autoresearch': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:8000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/autoresearch/, '')
       }

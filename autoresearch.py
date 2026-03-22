@@ -5,7 +5,7 @@ import requests
 import json
 
 # Connect directly to your internal LLM Bridge
-LLM_URL = os.getenv("LLM_BASE_URL", "http://local-qwen-backend:8080/v1") + "/chat/completions"
+LLM_URL = os.getenv("LLM_BASE_URL", "http://local-qwen-backend:8082/v1") + "/chat/completions"
 MODEL = os.getenv("LLM_MODEL", "qwen2.5-coder-7b")
 
 def run_cmd(cmd):

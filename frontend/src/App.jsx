@@ -256,10 +256,10 @@ function SectionLabel({ children }) {
 
 function StatusBadge({ status }) {
   const cfg = {
-    [RUN_STATUS.IDLE]:    { label: "STANDBY",  color: "var(--text2)", glow: false },
-    [RUN_STATUS.RUNNING]: { label: "EVOLVING", color: "var(--blue)",  glow: true  },
-    [RUN_STATUS.DONE]:    { label: "COMPLETE", color: "var(--blue2)", glow: false },
-    [RUN_STATUS.ERROR]:   { label: "FAULT",    color: "var(--red)",   glow: false },
+    [RUN_STATUS.IDLE]: { label: "STANDBY", color: "var(--text2)", glow: false },
+    [RUN_STATUS.RUNNING]: { label: "EVOLVING", color: "var(--blue)", glow: true },
+    [RUN_STATUS.DONE]: { label: "COMPLETE", color: "var(--blue2)", glow: false },
+    [RUN_STATUS.ERROR]: { label: "FAULT", color: "var(--red)", glow: false },
   }[status];
   return (
     <div style={{
@@ -304,11 +304,11 @@ function ProgressBar({ current, total }) {
 // ── Workflow Steps ───────────────────────────────────────────────────────────
 
 const STEPS = [
-  { n: "01", label: "Generate",  sub: "Describe idea → agent synthesises a structured task",  tab: "generate" },
-  { n: "02", label: "Review",    sub: "Edit the task definition written to program.md",        tab: "task"     },
-  { n: "03", label: "Baseline",  sub: "Paste train.py — the agent evolves beyond this",        tab: "baseline" },
-  { n: "04", label: "Configure", sub: "Set iterations, upload dataset if required",            tab: "config"   },
-  { n: "05", label: "Launch",    sub: "Agent self-evolves in a loop, logs stream live",        tab: null       },
+  { n: "01", label: "Generate", sub: "Describe idea → agent synthesises a structured task", tab: "generate" },
+  { n: "02", label: "Review", sub: "Edit the task definition written to program.md", tab: "task" },
+  { n: "03", label: "Baseline", sub: "Paste train.py — the agent evolves beyond this", tab: "baseline" },
+  { n: "04", label: "Configure", sub: "Set iterations, upload dataset if required", tab: "config" },
+  { n: "05", label: "Launch", sub: "Agent self-evolves in a loop, logs stream live", tab: null },
 ];
 
 function WorkflowSteps({ onTabSwitch }) {
@@ -352,8 +352,8 @@ function WorkflowSteps({ onTabSwitch }) {
 // ── Task Synthesiser (formerly Qwen Generator) ───────────────────────────────
 
 function TaskSynthesiser({ onAccept, disabled }) {
-  const [prompt, setPrompt]   = useState("");
-  const [status, setStatus]   = useState(GEN_STATUS.IDLE);
+  const [prompt, setPrompt] = useState("");
+  const [status, setStatus] = useState(GEN_STATUS.IDLE);
   const [preview, setPreview] = useState("");
   const abortRef = useRef(null);
 
@@ -371,7 +371,7 @@ function TaskSynthesiser({ onAccept, disabled }) {
           model: "qwen2.5-coder:7b", stream: true,
           messages: [
             { role: "system", content: SYNTHESIS_PROMPT },
-            { role: "user",   content: prompt },
+            { role: "user", content: prompt },
           ],
         }),
       });
@@ -399,13 +399,13 @@ function TaskSynthesiser({ onAccept, disabled }) {
     }
   };
 
-  const cancel  = () => { abortRef.current?.abort(); setStatus(GEN_STATUS.IDLE); setPreview(""); };
-  const accept  = () => { onAccept(preview); setStatus(GEN_STATUS.IDLE); setPreview(""); setPrompt(""); };
+  const cancel = () => { abortRef.current?.abort(); setStatus(GEN_STATUS.IDLE); setPreview(""); };
+  const accept = () => { onAccept(preview); setStatus(GEN_STATUS.IDLE); setPreview(""); setPrompt(""); };
   const discard = () => { setStatus(GEN_STATUS.IDLE); setPreview(""); };
 
   const loading = status === GEN_STATUS.LOADING;
-  const done    = status === GEN_STATUS.DONE;
-  const error   = status === GEN_STATUS.ERROR;
+  const done = status === GEN_STATUS.DONE;
+  const error = status === GEN_STATUS.ERROR;
 
   return (
     <div style={{
@@ -433,10 +433,10 @@ function TaskSynthesiser({ onAccept, disabled }) {
         }}>TASK SYNTHESIS ENGINE</span>
         {loading && (
           <span style={{ marginLeft: "auto", display: "flex", gap: 4, alignItems: "center" }}>
-            {[0,1,2].map(i => (
+            {[0, 1, 2].map(i => (
               <span key={i} style={{
                 width: 5, height: 5, borderRadius: "50%", background: "var(--blue)",
-                animation: `dotPulse 1s ease-in-out ${i*0.16}s infinite`,
+                animation: `dotPulse 1s ease-in-out ${i * 0.16}s infinite`,
               }} />
             ))}
           </span>
@@ -510,7 +510,7 @@ function TaskSynthesiser({ onAccept, disabled }) {
 function LogLine({ line, index }) {
   const lo = line.toLowerCase();
   let color = "var(--text0)";
-  let glow  = "none";
+  let glow = "none";
   if (lo.includes("error") || lo.includes("traceback")) {
     color = "var(--red)";
   } else if (lo.includes("best") || lo.includes("improved") || line.includes("✓")) {
@@ -522,9 +522,10 @@ function LogLine({ line, index }) {
   }
   return (
     <div style={{
-      fontFamily: "var(--font-mono)", fontSize: 12.5, lineHeight: 1.75,
-      color, padding: "1px 0", whiteSpace: "pre-wrap", wordBreak: "break-all",
-      textShadow: glow,
+      fontFamily: "var(--font-mono)", fontSize: 14, lineHeight: 1.8,
+      color, padding: "2px 0 2px 18px", whiteSpace: "pre-wrap", wordBreak: "break-all",
+      textShadow: glow, borderLeft: "2px solid transparent",
+      textAlign: "left", display: "block", width: "100%",
       animation: index > 0 ? "fadeSlideIn 0.15s ease both" : "none",
     }}>{line}</div>
   );
@@ -552,17 +553,17 @@ function TabBar({ tabs, active, onChange }) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [leftTab, setLeftTab]         = useState("generate");
-  const [task, setTask]               = useState(TASK_PLACEHOLDER);
-  const [baseline, setBaseline]       = useState(BASELINE_PLACEHOLDER);
-  const [iterations, setIterations]   = useState(5);
-  const [file, setFile]               = useState(null);
-  const [runStatus, setRunStatus]     = useState(RUN_STATUS.IDLE);
-  const [logs, setLogs]               = useState([]);
+  const [leftTab, setLeftTab] = useState("generate");
+  const [task, setTask] = useState(TASK_PLACEHOLDER);
+  const [baseline, setBaseline] = useState(BASELINE_PLACEHOLDER);
+  const [iterations, setIterations] = useState(5);
+  const [file, setFile] = useState(null);
+  const [runStatus, setRunStatus] = useState(RUN_STATUS.IDLE);
+  const [logs, setLogs] = useState([]);
   const [currentIter, setCurrentIter] = useState(0);
   const logEndRef = useRef(null);
   const streamRef = useRef(null);
-  const fileRef   = useRef(null);
+  const fileRef = useRef(null);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
 
@@ -579,20 +580,20 @@ export default function App() {
     setCurrentIter(0);
     try {
       const fd = new FormData();
-      fd.append("task",       task);
-      fd.append("baseline",   baseline);
+      fd.append("task", task);
+      fd.append("baseline", baseline);
       fd.append("iterations", iterations);
       if (file) fd.append("data", file);
 
       appendLog(">>> Initialising self-evolution loop…");
       appendLog(`>>> Target iterations : ${iterations}`);
-      if (file) appendLog(`>>> Dataset          : ${file.name} (${(file.size/1024).toFixed(1)} KB)`);
+      if (file) appendLog(`>>> Dataset          : ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
       appendLog("═".repeat(58));
 
       const res = await fetch(`${AUTORESEARCH_BASE}/run`, { method: "POST", body: fd });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const reader = res.body.getReader();
-      const dec    = new TextDecoder();
+      const dec = new TextDecoder();
       streamRef.current = reader;
       while (true) {
         const { done, value } = await reader.read();
@@ -614,14 +615,14 @@ export default function App() {
     setRunStatus(RUN_STATUS.IDLE);
   };
 
-  const taskLines     = task.split("\n").length;
+  const taskLines = task.split("\n").length;
   const baselineLines = baseline.split("\n").length;
 
   const LEFT_TABS = [
-    { id: "generate", icon: "⟳", label: "Generate"          },
-    { id: "task",     icon: "◈", label: `Task (${taskLines}L)` },
+    { id: "generate", icon: "⟳", label: "Generate" },
+    { id: "task", icon: "◈", label: `Task (${taskLines}L)` },
     { id: "baseline", icon: "⌥", label: `Baseline (${baselineLines}L)` },
-    { id: "config",   icon: "◎", label: "Config"             },
+    { id: "config", icon: "◎", label: "Config" },
   ];
 
   return (
@@ -787,7 +788,7 @@ export default function App() {
                     </div>
                     <div style={{ display: "flex", gap: 4 }}>
                       <button className="icon-btn" onClick={() => navigator.clipboard.writeText(baseline)} title="Copy">⎘</button>
-                      <button className="icon-btn" onClick={() => navigator.clipboard.readText().then(t => setBaseline(t)).catch(() => {})} title="Paste from clipboard">📋</button>
+                      <button className="icon-btn" onClick={() => navigator.clipboard.readText().then(t => setBaseline(t)).catch(() => { })} title="Paste from clipboard">📋</button>
                       <button className="icon-btn danger" onClick={() => setBaseline(BASELINE_PLACEHOLDER)} title="Reset">↺</button>
                     </div>
                   </div>
@@ -854,7 +855,7 @@ export default function App() {
                         <>
                           <div style={{ fontSize: 20, color: "var(--blue)", marginBottom: 4 }}>◈</div>
                           <div style={{ fontSize: 13, fontWeight: 500, color: "var(--blue)", fontFamily: "var(--font-mono)" }}>{file.name}</div>
-                          <div style={{ fontSize: 11, color: "var(--text1)" }}>{(file.size/1024).toFixed(1)} KB</div>
+                          <div style={{ fontSize: 11, color: "var(--text1)" }}>{(file.size / 1024).toFixed(1)} KB</div>
                         </>
                       ) : (
                         <>
@@ -881,7 +882,7 @@ export default function App() {
                     <SectionLabel>Services</SectionLabel>
                     {[
                       { label: "Synthesis Engine", url: "Connected" },
-                      { label: "Evolution Core",   url: "Connected" },
+                      { label: "Evolution Core", url: "Connected" },
                     ].map(e => (
                       <div key={e.label} style={{
                         display: "flex", justifyContent: "space-between",
@@ -956,11 +957,18 @@ export default function App() {
               </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px" }}>
+            <div style={{
+              flex: 1, overflowY: "auto",
+              padding: "18px 24px 18px 32px",
+              textAlign: "left",
+              display: "flex", flexDirection: "column",
+              alignItems: "stretch",
+            }}>
               {logs.length === 0 ? (
                 <div style={{
-                  height: "100%", display: "flex", flexDirection: "column",
+                  flex: 1, display: "flex", flexDirection: "column",
                   alignItems: "center", justifyContent: "center", gap: 14,
+                  textAlign: "center",
                 }}>
                   <div style={{
                     width: 58, height: 58, borderRadius: 14,
@@ -983,10 +991,10 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                <>
+                <div style={{ textAlign: "left", width: "100%" }}>
                   {logs.map((l, i) => <LogLine key={i} line={l} index={i} />)}
                   <div ref={logEndRef} />
-                </>
+                </div>
               )}
             </div>
           </div>

@@ -32,7 +32,7 @@ RUN echo "requests" > requirements.txt && \
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 # Essential runtimes and Git for the research loop
-RUN microdnf install -y python3 python3-pip git libstdc++ libgcc libgomp ca-certificates && \
+RUN microdnf install -y python3 python3-pip git libstdc++ libgcc libgomp ca-certificates vim-minimal && \
     microdnf clean all && \
     ln -sf /usr/bin/python3 /usr/bin/python
 
@@ -50,6 +50,7 @@ RUN uv pip install --no-cache -r requirements.txt --system
 # Create isolated researcher user
 RUN echo "researcher:x:10002:10002:AI Researcher:/research:/sbin/nologin" >> /etc/passwd && \
     echo "researchgroup:x:10002:" >> /etc/group
+
 
 # Set up Git context (Essential for the logic in autoresearch.py)
 RUN git config --global user.email "researcher@internal.local" && \
