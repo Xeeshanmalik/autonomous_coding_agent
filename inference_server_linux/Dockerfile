@@ -42,6 +42,8 @@ RUN wget -q --show-progress -O /models/model.gguf https://huggingface.co/Qwen/Qw
     chown 10001:10001 /models/model.gguf
 
 COPY --from=builder /opt/llama /usr/local/
+
+
 ENV LD_LIBRARY_PATH=/usr/local/lib:/usr/local/lib64:$LD_LIBRARY_PATH
 
 RUN chown root:root /usr/local/bin/llama-server && \

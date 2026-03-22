@@ -70,10 +70,13 @@ RUN chown -R 10002:10002 /research && \
     chmod -R 755 /research && \
     chmod 644 /research/prepare.py
 
+COPY ./autoresearch.py /research/autoresearch.py 
+COPY ./server.py /research/server.py
+
 USER 10002:10002
 
 # We expose 8000 here assuming you will run uvicorn on its default port
 EXPOSE 8000
 
 # Entrypoint: Keeps container alive for SSH/exec
-ENTRYPOINT ["tail", "-f", "/dev/null"]
+CMD ["python3", "server.py"]
