@@ -24,7 +24,13 @@ RUN echo "requests" > requirements.txt && \
     echo "dirtyjson" >> requirements.txt && \
     echo "fastapi" >> requirements.txt && \
     echo "uvicorn" >> requirements.txt && \
-    echo "python-multipart" >> requirements.txt
+    echo "python-multipart" >> requirements.txt && \
+    echo "scikit-learn" >> requirements.txt && \
+    echo "scipy" >> requirements.txt && \
+    echo "imbalanced-learn" >> requirements.txt && \
+    echo "sdv" >> requirements.txt && \
+    echo "copulas" >> requirements.txt && \
+    echo "ctgan" >> requirements.txt
 
 # ==========================================
 # STAGE 2: Secure Runtime (The Optimized Sandbox)

@@ -31,6 +31,8 @@ async def run_evolution(
         # Pass the UI's iteration slider value to the script
         env = os.environ.copy()
         env["MAX_ITERATIONS"] = str(iterations)
+        if data:
+            env["DATASET_PATH"] = data.filename
         
         process = subprocess.Popen(
             ["python", "-u", "autoresearch.py"],
@@ -45,6 +47,16 @@ async def run_evolution(
             
         process.stdout.close()
         process.wait()
+
+        # Transmit the final train.py state exactly as text demarcated by special tags
+        try:
+            with open("train.py", "r") as f:
+                yield "\n[FINAL_CODE_START]\n"
+                for code_line in f:
+                    yield code_line
+                yield "\n[FINAL_CODE_END]\n"
+        except FileNotFoundError:
+            pass
 
     return StreamingResponse(stream_researcher(), media_type="text/plain")
 
