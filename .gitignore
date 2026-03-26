@@ -1,5 +1,6 @@
 frontend/node_modules/*
 frontend/public/*
 inference_server_mac/*
-
+models/*
+test_deepseek.py
 

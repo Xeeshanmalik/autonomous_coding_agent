@@ -11,6 +11,8 @@ async def run_evolution(
     task: str = Form(...),
     baseline: str = Form(...),
     iterations: int = Form(...),
+    modelChoice: str = Form("local"),
+    apiKey: str = Form("AIzaSyDG8nPBt0pxZQeoDGZ-k1MSmaNBAbi_aVg"),
     data: UploadFile = File(None)
 ):
     # 1. Save the task definition
@@ -31,6 +33,9 @@ async def run_evolution(
         # Pass the UI's iteration slider value to the script
         env = os.environ.copy()
         env["MAX_ITERATIONS"] = str(iterations)
+        if modelChoice == "gemini":
+            env["USE_GEMINI"] = "true"
+            env["GEMINI_API_KEY"] = apiKey
         if data:
             env["DATASET_PATH"] = data.filename
         
@@ -38,12 +43,15 @@ async def run_evolution(
             ["python", "-u", "autoresearch.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True,
             env=env
         )
         
-        for line in iter(process.stdout.readline, ""):
-            yield line
+        while True:
+            read_fn = getattr(process.stdout, "read1", process.stdout.read)
+            chunk = read_fn(128)
+            if not chunk:
+                break
+            yield chunk.decode('utf-8', errors='replace')
             
         process.stdout.close()
         process.wait()

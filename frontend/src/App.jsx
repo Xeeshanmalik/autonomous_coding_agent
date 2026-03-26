@@ -349,9 +349,9 @@ function WorkflowSteps({ onTabSwitch }) {
   );
 }
 
-// ── Task Synthesiser (formerly Qwen Generator) ───────────────────────────────
+// ── Task Synthesiser (formerly Task Generator) ───────────────────────────────
 
-function TaskSynthesiser({ onAccept, disabled }) {
+function TaskSynthesiser({ onAccept, disabled, modelChoice, apiKey }) {
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState(GEN_STATUS.IDLE);
   const [preview, setPreview] = useState("");
@@ -368,7 +368,7 @@ function TaskSynthesiser({ onAccept, disabled }) {
         headers: { "Content-Type": "application/json" },
         signal: abortRef.current.signal,
         body: JSON.stringify({
-          model: "qwen2.5-coder:7b", stream: true,
+          model: "deepSeek-R1-Distill-Qwen-32B", stream: true,
           messages: [
             { role: "system", content: SYNTHESIS_PROMPT },
             { role: "user", content: prompt },
@@ -557,6 +557,8 @@ export default function App() {
   const [task, setTask] = useState(TASK_PLACEHOLDER);
   const [baseline, setBaseline] = useState(BASELINE_PLACEHOLDER);
   const [iterations, setIterations] = useState(5);
+  const [modelChoice, setModelChoice] = useState("local");
+  const [apiKey, setApiKey] = useState("");
   const [file, setFile] = useState(null);
   const [runStatus, setRunStatus] = useState(RUN_STATUS.IDLE);
   const [logs, setLogs] = useState([]);
@@ -566,6 +568,25 @@ export default function App() {
   const fileRef = useRef(null);
 
   useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [logs]);
+
+  const appendLogChunk = useCallback(chunk => {
+    setLogs(p => {
+      if (p.length === 0) return [chunk];
+
+      const lastIdx = p.length - 1;
+      const lastStr = p[lastIdx];
+      const parts = chunk.split("\n");
+
+      if (parts.length === 1) {
+        return [...p.slice(0, lastIdx), lastStr + parts[0]];
+      } else {
+        return [...p.slice(0, lastIdx), lastStr + parts[0], ...parts.slice(1)];
+      }
+    });
+
+    const m = chunk.match(/[Ii]teration\s+(\d+)/);
+    if (m) setCurrentIter(parseInt(m[1]));
+  }, []);
 
   const appendLog = useCallback(line => {
     setLogs(p => [...p, line]);
@@ -579,10 +600,16 @@ export default function App() {
     setLogs([]);
     setCurrentIter(0);
     try {
+      if (modelChoice === "gemini" && !apiKey.trim()) {
+        throw new Error("Gemini API Key is required when Gemini model is selected.");
+      }
+
       const fd = new FormData();
       fd.append("task", task);
       fd.append("baseline", baseline);
       fd.append("iterations", iterations);
+      fd.append("modelChoice", modelChoice);
+      fd.append("apiKey", apiKey);
       if (file) fd.append("data", file);
 
       appendLog(">>> Initialising self-evolution loop…");
@@ -598,7 +625,9 @@ export default function App() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        dec.decode(value, { stream: true }).split("\n").forEach(l => { if (l.trim()) appendLog(l); });
+        // Process streaming text chunks directly
+        const textChunk = dec.decode(value, { stream: true });
+        if (textChunk) appendLogChunk(textChunk);
       }
       appendLog("═".repeat(58));
       appendLog("✓ Evolution complete — check improved train.py in container.");
@@ -717,6 +746,8 @@ export default function App() {
                   <TaskSynthesiser
                     onAccept={text => { setTask(text); setLeftTab("task"); }}
                     disabled={runStatus === RUN_STATUS.RUNNING}
+                    modelChoice={modelChoice}
+                    apiKey={apiKey}
                   />
 
                   {/* Protocol steps */}
@@ -876,6 +907,23 @@ export default function App() {
                     )}
                     <input ref={fileRef} type="file" style={{ display: "none" }}
                       onChange={e => setFile(e.target.files[0])} />
+                  </div>
+
+                  <div className="card">
+                    <SectionLabel>Model Selection</SectionLabel>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", color: "var(--text0)" }}>
+                        <input type="radio" name="model" value="local" checked={modelChoice === "local"} onChange={() => setModelChoice("local")} style={{ accentColor: "var(--blue)" }} />
+                        Local DeepSeek-32B
+                      </label>
+                      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer", color: "var(--text0)" }}>
+                        <input type="radio" name="model" value="gemini" checked={modelChoice === "gemini"} onChange={() => setModelChoice("gemini")} style={{ accentColor: "var(--blue)" }} />
+                        Gemini 2.0 Flash API (Max Free Limit)
+                      </label>
+                      {modelChoice === "gemini" && (
+                        <input type="password" placeholder="Paste Gemini API Key here..." value={apiKey} onChange={e => setApiKey(e.target.value)} className="raw-area" style={{ marginTop: 2 }} />
+                      )}
+                    </div>
                   </div>
 
                   <div className="card">
