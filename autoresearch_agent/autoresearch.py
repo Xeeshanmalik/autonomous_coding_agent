@@ -21,41 +21,36 @@ else:
 # ---------------------------------------------------------------------------
 # System Prompt (shared between outer research loop and self-healer)
 # ---------------------------------------------------------------------------
-SYSTEM_PROMPT = (
-    "You are an elite, autonomous quantitative researcher. "
-    "Output ONLY the raw Python code inside ```python blocks. Do not explain your code. "
-    "CRITICAL: YOUR SCRIPT WILL BE DISCARDED if it does not print exactly `print(f'val_loss {score}')` at the end. "
-    "The AutoResearch engine ALWAYS MINIMIZES this score. You MUST intelligently select a metric that fits the user's objective "
-    "(e.g., `mean_squared_error` from sklearn for regression, `1 - f1_score` for classification, or "
-    "`scipy.stats.wasserstein_distance` for synthetic data) so that LOWER is BETTER! "
-    "CRITICAL FOR METRICS: NEVER guess or hallucinate metric function imports "
-    "(e.g. `jensen_shannon_divergence` does NOT exist in sklearn or scipy.stats). "
-    "Use EXACTLY `scipy.stats.wasserstein_distance` if you need a distribution metric. "
-    "If the provided baseline code lacks a metric, YOU MUST write one. "
-    "ALWAYS read datasets dynamically using `import os; data_file = os.environ.get('DATASET_PATH', 'dataset.csv')`. "
-    "CRITICAL: NEVER use hardcoded paths like 'original_data.csv' or 'synthetic_data.csv' to read/write! "
-    "Use the environment variable only. "
-    "ALWAYS assume the last column is the target variable and extract it using `iloc[:, -1]`; "
-    "never use hardcoded column names. "
-    "YOU MUST handle or drop non-numeric columns (like Dates/Strings) BEFORE numerical preprocessing like scaling or imputation. "
-    "CRITICAL: You must explicitly write out `import os` and ALL required `import` declarations at the very top of your script. "
-    "Ensure all code is strictly compatible with standard Python 3.9 modules (pandas, numpy, scipy, sklearn). "
-    "DO NOT import or use experimental libraries like `ctgan` or `copulas` because they WILL fail. "
-    "CRITICAL FOR ERROR-FREE CODE: If you receive ERROR FEEDBACK with a `TypeError` about unexpected keyword arguments, "
-    "completely REMOVE the offending argument in the next iteration. DO NOT GUESS parameter names. "
-    "To avoid ImportErrors, only import standard, well-known functions. "
-    "CRITICAL: Set `n_jobs=1` for all models/GridSearchCV. NEVER use `n_jobs=-1` as it will exhaust system RAM. "
-    "NEVER use GPU parameters; the training sandbox is strictly CPU-only! "
-    "CRITICAL FLAG: You may install missing modules or fix bugs based on ERROR FEEDBACK if provided. "
-    "INNOVATION DIRECTIVE: The user dataset ONLY contains numerical data. "
-    "DO NOT import or use `OneHotEncoder` or `LabelEncoder` under any circumstances. "
-    "Assume the data is 100% numerical out of the box. Do not write complex code to handle categorical variables. "
-    "For predictive tasks, ALWAYS consider independent (X) and dependent (y) variables separately. "
-    "You MUST make error-free, mathematical amendments to the provided baseline code "
-    "(such as improving the data distributions, adding realistic noise correlations, or upgrading the basic RandomForest/XGBoost logic) "
-    "rather than rewriting it from scratch. "
-    "Maximize accuracy through robust but SIMPLE, standard library code."
-)
+SYSTEM_PROMPT = """You are an elite autonomous research engineer. Output ONLY raw Python code inside ```python blocks. Do NOT output explanations or conversational text.
+
+# YOUR ONLY JOB
+Read the provided baseline script carefully. Understand what it is trying to do, then make it measurably better — lower val_loss. The task could be anything: data synthesis, regression, classification, optimisation, simulation, compression, etc. Your improvements must match the intent of the baseline.
+
+# ABSOLUTE RULES
+
+## Output
+- Script MUST end with: `print(f'val_loss {score}')` where score is a float.
+- The engine MINIMISES val_loss. Configure every metric so LOWER IS BETTER.
+- Never remove or rename the val_loss print — the loop depends on it.
+
+## Task Awareness (read baseline before writing)
+- Understand what the baseline does BEFORE choosing an algorithm.
+- If it generates synthetic data → improve the generation / distribution matching. Do NOT introduce supervised classifiers.
+- If it trains a regressor → improve the regression model. Do NOT switch to a classifier.
+- If it trains a classifier → improve classification. Do NOT switch to a regressor.
+- When in doubt: keep the same algorithmic family as the baseline. Improve parameters, preprocessing, or training strategy only.
+
+## Environment
+- CPU-only sandbox. No GPU. Set `n_jobs=1` everywhere. Never use `-1`.
+- Read data: `os.environ.get('DATASET_PATH', 'dataset.csv')`. No hardcoded paths.
+- Only use: Python 3.9 stdlib, pandas, numpy, scipy, sklearn. Import everything explicitly.
+- Do NOT use ctgan, copulas, torch, tensorflow, or any lib that requires installation.
+
+## Code Quality
+- Do not rewrite from scratch. Make surgical, mathematical improvements to the baseline.
+- Never hallucinate function names. Verify every import exists in the library.
+- If ERROR FEEDBACK is given: fix only that specific bug. Return the complete corrected script.
+"""
 
 
 # ---------------------------------------------------------------------------
@@ -122,6 +117,9 @@ def query_llm(messages, stream=True):
         "messages": messages,
         "temperature": 0.7,
         "stream": stream,
+        # Hard cap on output tokens. Prompt is ~800 tokens; keeping total under
+        # the server's 4096-token context (-c 4096) prevents "Error in input stream".
+        "max_tokens": 2048,
     }
 
     retry_count, max_retries, backoff = 0, 3, 10
@@ -297,9 +295,14 @@ def main():
     with open("program.md", "r") as f:
         program_instructions = f.read()
 
+    # Save the original baseline code once — always send this to the LLM so
+    # the prompt size stays fixed across all cycles (prevents context overflow
+    # that caused empty responses after a breakthrough on cycle 2+).
+    with open("train.py", "r") as f:
+        baseline_code = f.read()
+
     iteration = 1
     max_iterations = int(os.environ.get("MAX_ITERATIONS", 5))
-    best_code_snapshot = open("train.py").read()  # Keep a copy of the last-known-good code
 
     while iteration <= max_iterations:
         print(f"\n{'='*50}")
@@ -317,9 +320,11 @@ def main():
         model_name = "Gemini-2.0-Flash" if os.environ.get("USE_GEMINI") == "true" else "DeepSeek-32B"
         print(f"[*] Querying {model_name} for architectural improvements…\n")
 
-        # --- Build the outer research prompt ---
+        # Always send the original baseline code to the LLM (not the champion).
+        # This keeps the prompt token count stable and lets each cycle attempt
+        # a fresh improvement from the same known-good starting point.
         user_content = (
-            f"{program_instructions}\n\nCurrent train.py:\n```python\n{current_code}\n```"
+            f"{program_instructions}\n\nBaseline train.py (improve upon this):\n```python\n{baseline_code}\n```"
         )
 
         research_messages = [
