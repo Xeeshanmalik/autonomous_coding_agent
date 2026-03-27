@@ -115,11 +115,11 @@ def query_llm(messages, stream=True):
     payload = {
         "model": MODEL,
         "messages": messages,
-        "temperature": 0.7,
+        "temperature": 0.3,
         "stream": stream,
         # Hard cap on output tokens. Prompt is ~800 tokens; keeping total under
         # the server's 4096-token context (-c 4096) prevents "Error in input stream".
-        "max_tokens": 2048,
+        # "max_tokens": 4096,
     }
 
     retry_count, max_retries, backoff = 0, 3, 10
