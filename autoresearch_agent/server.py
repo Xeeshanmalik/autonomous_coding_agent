@@ -12,7 +12,7 @@ async def run_evolution(
     baseline: str = Form(...),
     iterations: int = Form(...),
     modelChoice: str = Form("local"),
-    apiKey: str = Form("AIzaSyDG8nPBt0pxZQeoDGZ-k1MSmaNBAbi_aVg"),
+    apiKey: str = Form(""),
     data: UploadFile = File(None)
 ):
     # 1. Save the task definition
